@@ -89,7 +89,7 @@ starlong_meta %>%
 rownames(meta) <- unique(meta$BirdID_Tissue)
 rownames(data) <- unique(data$X)
 data <- subset(data, select = -c(X))
-meta <- subset(meta, select = -c(X))
+#meta <- subset(meta, select = -c(X))
 
 meta <- meta[match(colnames(data), rownames(meta)),]
 
