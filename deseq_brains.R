@@ -1111,6 +1111,10 @@ foodgenes <- c('VGF', 'TRH', 'LEPR', 'ADIPOR2', 'IRS2')
 ## Metabolism genes from Figure 3 in https://www.nature.com/articles/s41598-018-31506-2/figures/3
 # This paper also has clock genes
 metabgenes <- c('PPARA', 'SIRT1', 'LEPR')
+## Insulin related genes from brown bear hibernation
+## https://academic.oup.com/icb/advance-article/doi/10.1093/icb/icac093/6609442?login=true
+insulingenes <- c('APPL1', 'ATP6AP1', 'ATP6V0A1', 'GRB14', 'IGF2') #AKT2 isn't present
+insulingenes2 <- c('INSR', 'PIK3R1', 'PPFIBP1', 'SHC1', 'SLC18B1', 'SORBS1') # 'TCIRG1' isn't present
 
 datlong %>%
   filter(gene == clockgenes) %>%
@@ -1137,6 +1141,31 @@ datlong %>%
   #geom_violin() +
   my_theme + facet_wrap(.~gene, scales = "free") +
   ggtitle("Clock genes expression in the diencephalon across metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+# Boxplot/Violin plot of insulin genes
+## Not much going on, and low-ish levels of expression, low sample sizes
+datlong %>%
+  filter(gene == insulingenes) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  my_theme + facet_grid(gene~Tissue, scales = "free") +
+  ggtitle("Insulin genes expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+## 6 other insulin genes
+## Not much going on, and low-ish levels of expression, low sample sizes
+# Except.. SLC18B1 for DI, which has some pattern, and PPFIBP1 for DT and RT, maybe SORBS1 for DT and RT
+datlong %>%
+  filter(gene == insulingenes2) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  my_theme + facet_grid(gene~Tissue, scales = "free") +
+  ggtitle("Insulin genes expression across tissues and metabolic states") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Gene counts") + xlab("Metabolic state")
 

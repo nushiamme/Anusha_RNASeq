@@ -30,6 +30,7 @@ library(pheatmap)
 library(clusterProfiler)
 library(dendextend) # For making gene trees for heatmaps
 library(ComplexHeatmap)
+library(cowplot) # for plot_grid function
 
 
 ## If you opened the .Rproj file from the OneDrive folder, reading in these files will work- 
@@ -42,13 +43,17 @@ foldchange <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//fi
 ## Made this one in this script
 norm_counts_df <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//RNASeq_NormCounts.csv"))
 
-my_theme <- theme_classic(base_size = 15) + 
+my_theme <- theme_classic(base_size = 30) + 
+  theme(panel.border = element_rect(colour = "black", fill=NA)) + theme(legend.key.height = unit(2, "line"))
+
+my_theme2 <- theme_classic(base_size = 20) + 
   theme(panel.border = element_rect(colour = "black", fill=NA)) + theme(legend.key.height = unit(2, "line"))
 
 ## Viridis colors
 my_gradient <- c("#823de9", "#7855ce", "#6e6eb2", "#648697", "#599e7c", "#4fb760", "#45cf45")
 my_col_rainbows <- c("#f94144", "#f3722c", "#f8961e", "#f9844a",
                      "#f9c74f", "#90be6d", "#43aa8b", "#4d908e", "#577590", "#277da1")
+mycols <- c("orange", "navy", "springgreen4", "mediumorchid", "gold4", "plum1", "springgreen")
 
 #### Don't need to re-do - this is a check, not used in analyses really.                     
 ## Checking on the star alignment
@@ -110,16 +115,99 @@ dds$Metabolic_State <- relevel(dds$Metabolic_State, ref="N")
 ## Run DESeq
 dds <- DESeq(dds)
 
-## Get normalized data, save it
-normalized_counts <- counts(dds, normalized=TRUE)
-norm_counts_df <- as.data.frame(normalized_counts)
+
+## PCAs
+vst_dds <- vst(dds,blind=TRUE, fitType='local')
+
+
+## Don't use this
+tissue_pca <- plotPCA(vst_dds, 
+        intgroup = "Tissue")  
+
+tissue_pca + geom_point(size=4) + my_theme + scale_color_manual(values = mycols, name = "Tissue")
+
+## Use this
+plotPCA_jh = function(pp1=1, pp2=2, 
+                      object, intgroup="condition", 
+                      ntop=1000, returnData=FALSE) {
+  
+  
+  # calculate the variance for each gene
+  rv <- rowVars(assay(object))
+  
+  # select the ntop genes by variance
+  select <- order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
+  
+  # perform a PCA on the data in assay(x) for the selected genes
+  pca <- prcomp(t(assay(object)[select,]))
+  
+  # the contribution to the total variance for each component
+  percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
+  
+  if (!all(intgroup %in% names(colData(object)))) {
+    stop("the argument 'intgroup' should specify columns of colData(dds)")
+  }
+  
+  intgroup.df <- as.data.frame(colData(object)[, intgroup, drop=FALSE])
+  
+  # add the intgroup factors together to create a new grouping factor
+  group <- if (length(intgroup) > 1) {
+    factor(apply(intgroup.df, 1, paste, collapse=":"))
+  } else {
+    colData(object)[[intgroup]]
+  }
+  
+  # assembly the data for the plot
+  d <- data.frame(PC1=pca$x[,pp1], PC2=pca$x[,pp2], group=group, intgroup.df, 
+                  name=colnames(object))
+  
+  if (returnData) {
+    attr(d, "percentVar") <- percentVar[pp1:pp2]
+    return(d)
+  }
+  
+  ggplot(data=d, aes_string(x="PC1", y="PC2", color="group", label = "name")) + 
+    geom_point(size=3) + 
+    xlab(paste0("PC", pp1, ": ",round(percentVar[pp1] * 100),"% variance")) +
+    ylab(paste0("PC", pp2, ": ",round(percentVar[pp2] * 100),"% variance")) +
+    #scale_color_brewer(type = "qual", palette = "Dark2", direction = 1)+
+    colorspace::scale_color_discrete_qualitative(palette = "Dark 3", rev = TRUE)+
+    cowplot::theme_cowplot()+
+    coord_fixed()
+}
+
+pc12 <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vst_dds, intgroup = "Tissue") + geom_point(size=4) + 
+  guides(col="none") + my_theme2 + scale_color_manual(values = mycols)
+pc13 <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vst_dds, intgroup = "Tissue") + 
+  geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Tissue")
+
+grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
+library(cowplot)
+plot_grid(pc12, pc13, align = "h", rel_widths = c(0.45, 0.55))
+
+## Sample tissue one- just heart
+heart_dds <- dds[,dds$Tissue=="Heart"]
+vstdds_heart <- vst(heart_dds,blind=TRUE, fitType='local')
+pc12_heart <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vstdds_heart, intgroup = "Metabolic_State") + geom_point(size=4) + 
+  guides(col="none") + my_theme2 + scale_color_manual(values = mycols)
+pc13_heart <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vstdds_heart, intgroup = "Metabolic_State") + 
+  geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Metabolic_State", 
+                                                      labels=c("Normothermy", "Transition", "Deep torpor"))
+
+#grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
+plot_grid(pc12_heart, pc13_heart, align = "h", rel_widths = c(1.5, 2))
+
+
+## Get normalized data, save it RE-RUN only if necessary
+# normalized_counts <- counts(dds, normalized=TRUE)
+# norm_counts_df <- as.data.frame(normalized_counts)
 
 #### Needed for later analyses
 ## Make data long-form and merge with metadata file
 meta2$Metabolic_State <- as.factor(meta2$Metabolic_State)
 datlong <- norm_counts_df %>%
   #rename(gene = X) %>%
-  gather(key = 'Sample', value= 'counts', -gene) %>%
+  gather(key = 'Sample', value= 'counts', 3:ncol(norm_counts_df)) %>% 
   left_join(., meta2, by="Sample") %>%
   mutate(Metabolic_State = 
            fct_relevel(Metabolic_State, 
@@ -212,6 +300,7 @@ results(dds, contrast=c("Metabolic_State", "D", "N"),)
 ## Shrinking
 res <- lfcShrink(dds, coef = 3, res = res)
 #res
+
 
 ## Fold change results
 mcols(res, use.names=T)
@@ -1072,12 +1161,69 @@ datlong %>%
 top_genes <- c(upreg_ND, upreg_NT, upreg_TD, downreg_ND, downreg_NT, downreg_TD)
 top_genes_annotated <- top_genes[!grepl("LOC", top_genes)]
 
+upreg_ND[!grepl("LOC", upreg_ND)]
+upreg_NT[!grepl("LOC", upreg_NT)]
+upreg_TD[!grepl("LOC", upreg_TD)]
+
+downreg_ND[!grepl("LOC", downreg_ND)]
+downreg_NT[!grepl("LOC", downreg_NT)]
+downreg_TD[!grepl("LOC", downreg_TD)]
+
+
+upreg_Liver_ND[!grepl("LOC", upreg_Liver_ND)]
+upreg_Heart_ND[!grepl("LOC", upreg_Heart_ND)]
+upreg_Lungs_ND[!grepl("LOC", upreg_Lungs_ND)]
+upreg_Pect_ND[!grepl("LOC", upreg_Pect_ND)]
+
+downreg_Liver_ND[!grepl("LOC", downreg_Liver_ND)]
+downreg_Heart_ND[!grepl("LOC", downreg_Heart_ND)]
+downreg_Lungs_ND[!grepl("LOC", downreg_Lungs_ND)]
+downreg_Pect_ND[!grepl("LOC", downreg_Pect_ND)]
+
 
 datlong %>%
   filter(gene %in% top_genes_annotated) %>%
   ggplot(., aes(x = Tissue, y = gene, fill = counts)) +
   geom_tile() + my_theme +
   scale_fill_gradient(low = 'white', high = 'red') + facet_grid(.~Metabolic_State, scales = "free")
+
+datlong %>%
+  filter(gene == 'CLOCK', Tissue %in% c("Heart", "Lungs")) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  my_theme + facet_wrap(.~Tissue, scales = "free") +
+  ggtitle("CLOCK gene expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+clockgenes1 <- c('CRY1', 'CRY2')
+datlong %>%
+  filter(gene == clockgenes1, Tissue %in% c("Heart", "Lungs")) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  my_theme + facet_grid(gene~Tissue, scales = "free") +
+  ggtitle("Clock genes' expression across tissues and metabolic states") +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+
+clockgenes2 <- c('PER2', 'PER3')
+datlong %>%
+  filter(gene == clockgenes2, Tissue %in% c("Heart", "Lungs")) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  my_theme + 
+  facet_grid(gene~Tissue, scales = "free") +
+  ggtitle("Clock genes' expression across tissues and metabolic states") +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
 
 ## Metabolism genes from Figure 3 in https://www.nature.com/articles/s41598-018-31506-2/figures/3
 # This paper also has clock genes
