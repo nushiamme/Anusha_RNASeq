@@ -31,17 +31,22 @@ library(clusterProfiler)
 library(dendextend) # For making gene trees for heatmaps
 library(ComplexHeatmap)
 library(cowplot) # for plot_grid function
-
+library(enrichR)
 
 ## If you opened the .Rproj file from the OneDrive folder, reading in these files will work- 
 ## the relative paths should be the same
-data <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//RNASeq_rawcounts_data.csv"))
-meta <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//AnushaShankar_RNASeq_metadata.csv"))
-star_alignment <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//star_alignment_plot.csv"))
-star <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//star_gene_counts.csv"))
-foldchange <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//TopFoldChanges.csv"))
+data <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "RNASeq_rawcounts_data.csv"))
+meta <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "AnushaShankar_RNASeq_metadata.csv"))
+star_alignment <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "star_alignment_plot.csv"))
+star <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "star_gene_counts.csv"))
+foldchange <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "TopFoldChanges.csv"))
 ## Made this one in this script
-norm_counts_df <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//RNASeq_NormCounts.csv"))
+norm_counts_df <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "RNASeq_NormCounts.csv"))
+
+## Just for prepping for GO analysis on https://usadellab.github.io/GeneExpressionPlots/#/data
+#dat_exp <- read_table(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "RNASeq_rawcounts_data_ForGONet.txt"))
+#dat_meta <- read_table(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "AnushaShankar_RNASeq_metadata_GONet.txt"))
+
 
 my_theme <- theme_classic(base_size = 30) + 
   theme(panel.border = element_rect(colour = "black", fill=NA)) + theme(legend.key.height = unit(2, "line"))
@@ -57,36 +62,36 @@ mycols <- c("orange", "navy", "springgreen4", "mediumorchid", "gold4", "plum1", 
 
 #### Don't need to re-do - this is a check, not used in analyses really.                     
 ## Checking on the star alignment
-head(star)
-star <- star %>%
-  rename(Sample = ï..Sample) %>%
-  mutate(Sample = gsub("c", "", Sample))
-
+# head(star)
+# star <- star %>%
+#   rename(Sample = ï..Sample) %>%
+#   mutate(Sample = gsub("c", "", Sample))
+# 
 meta2 <- meta %>%
   rename(Sample = X)
 
-starlong_meta <- star %>%
-  gather(key="Mapped", value="count", -Sample) %>%
-  left_join(., meta2, by="Sample")
-
-starlong_meta %>%
-  mutate(Mapped_relevel = 
-         fct_relevel(Mapped, 
-                    "Overlapping_Genes", "Multimapping", "Unmapped", "Ambiguous_Features", "No_Feature")) %>%
-  ggplot(., aes(Tissue, count, fill=Mapped_relevel)) + 
-  geom_bar(position="fill", stat="identity") +
-  scale_fill_viridis(discrete = T) + my_theme + ylab("Percent counts")
-
-
-starlong_meta %>%
-  ggplot(., aes(Tissue, count, fill=Mapped)) + 
-  geom_bar(position="fill", stat="identity") +
-  scale_fill_viridis(discrete = T)
-
-starlong_meta %>%
-  ggplot(., aes(Tissue, count, fill=Mapped)) + 
-  geom_bar(stat="identity", position="fill") +
-  scale_fill_viridis(discrete = T)
+# starlong_meta <- star %>%
+#   gather(key="Mapped", value="count", -Sample) %>%
+#   left_join(., meta2, by="Sample")
+# 
+# starlong_meta %>%
+#   mutate(Mapped_relevel = 
+#          fct_relevel(Mapped, 
+#                     "Overlapping_Genes", "Multimapping", "Unmapped", "Ambiguous_Features", "No_Feature")) %>%
+#   ggplot(., aes(Tissue, count, fill=Mapped_relevel)) + 
+#   geom_bar(position="fill", stat="identity") +
+#   scale_fill_viridis(discrete = T) + my_theme + ylab("Percent counts")
+# 
+# 
+# starlong_meta %>%
+#   ggplot(., aes(Tissue, count, fill=Mapped)) + 
+#   geom_bar(position="fill", stat="identity") +
+#   scale_fill_viridis(discrete = T)
+# 
+# starlong_meta %>%
+#   ggplot(., aes(Tissue, count, fill=Mapped)) + 
+#   geom_bar(stat="identity", position="fill") +
+#   scale_fill_viridis(discrete = T)
 
 rownames(meta) <- unique(meta$X)
 rownames(data) <- unique(data$X)
@@ -121,10 +126,10 @@ vst_dds <- vst(dds,blind=TRUE, fitType='local')
 
 
 ## Don't use this
-tissue_pca <- plotPCA(vst_dds, 
-        intgroup = "Tissue")  
-
-tissue_pca + geom_point(size=4) + my_theme + scale_color_manual(values = mycols, name = "Tissue")
+# tissue_pca <- plotPCA(vst_dds, 
+#         intgroup = "Tissue")  
+# 
+# tissue_pca + geom_point(size=4) + my_theme + scale_color_manual(values = mycols, name = "Tissue")
 
 ## Use this
 plotPCA_jh = function(pp1=1, pp2=2, 
@@ -199,7 +204,7 @@ plot_grid(pc12_heart, pc13_heart, align = "h", rel_widths = c(1.5, 2))
 
 
 ## Get normalized data, save it RE-RUN only if necessary
-# normalized_counts <- counts(dds, normalized=TRUE)
+normalized_counts <- counts(dds, normalized=TRUE)
 # norm_counts_df <- as.data.frame(normalized_counts)
 
 #### Needed for later analyses
@@ -308,16 +313,21 @@ res %>% data.frame() %>% View()
 ## Summarize results
 summary(res)
 
-### Set thresholds
-padj.cutoff <- 0.05
-lfc.cutoff <- 0.58 ## equal to fold change of 1.5
-
 ## We can easily subset the results table to only include 
 ## those that are significant using the filter() function, but first we will convert the results table into a tibble:
 res_tb <- res_ND %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble()
+
+## CHECK THIS for inflection point
+ggplot(res_tb, aes(log2FoldChange)) + geom_density() + geom_vline(xintercept = c(-0.5, 0.5), col="red") + my_theme
+
+
+### Set thresholds
+padj.cutoff <- 0.05
+lfc.cutoff <- 0.58 ## 0.58 is equal to fold change of 1.5
+
 
 ## Just subset significantly different genes
 sig <- res_tb %>%
@@ -346,11 +356,13 @@ normalized_counts <- normalized_counts %>%
 ## For enrichr analysis, just filtering out genes that have basemean >10, logFC >1 or < -1,
 # And adjusted p-val of < 0.05
 
+## Aug 25 trying out L2FC +/- 0.5
+
 upreg_ND <-  res_ND %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange>1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange>lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -358,7 +370,7 @@ downreg_ND <-  res_ND %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange < -1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange < -lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -367,7 +379,7 @@ upreg_NT <-  res_NT %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange>1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange>lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -375,7 +387,7 @@ downreg_NT <-  res_NT %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange< -1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange< -lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -384,7 +396,7 @@ upreg_TD <-  res_TD %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange>1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange>lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -392,7 +404,7 @@ downreg_TD <-  res_TD %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange< -1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange< -lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -1181,11 +1193,102 @@ downreg_Lungs_ND[!grepl("LOC", downreg_Lungs_ND)]
 downreg_Pect_ND[!grepl("LOC", downreg_Pect_ND)]
 
 
+## Trying out enrichR package
+enrichr(upreg_ND, databases = c("BioPlanet_2019", "KEGG_2021_Human"))
+enrichr(downreg_ND, databases = c("BioPlanet_2019", "KEGG_2021_Human"))
+
+if (getOption("enrichR.live")) {
+  dbs <- listEnrichrDbs()
+  enrichRLive <- TRUE
+  if (is.null(dbs)) enrichRLive <- FALSE
+  dbs <- c("BioPlanet_2019", "KEGG_2021_Human")
+  enriched <- enrichr(upreg_ND, dbs)
+  # Plot top 20 GO-BP results ordered by P-value
+  if (enrichRLive) {
+    plotEnrich(enriched[[2]], showTerms = 10, numChar = 50, y = "Ratio",
+               orderBy = "P.value")
+  }
+}
+
+
+head(upreg_ND)
+
+## Make numeric version of metabolic states
+datlong$MetabState_numeric <- NA
+datlong$MetabState_numeric[datlong$Metabolic_State=="N"] <- 1
+datlong$MetabState_numeric[datlong$Metabolic_State=="T"] <- 2
+datlong$MetabState_numeric[datlong$Metabolic_State=="D"] <- 3
+
 datlong %>%
   filter(gene %in% top_genes_annotated) %>%
   ggplot(., aes(x = Tissue, y = gene, fill = counts)) +
   geom_tile() + my_theme +
   scale_fill_gradient(low = 'white', high = 'red') + facet_grid(.~Metabolic_State, scales = "free")
+
+clock_all <- c("CLOCK", "CRY1", "CRY2", "PER2", "PER3")
+clock_col <- c("black", "pink", "red", "green", "blue")
+clockgenes1 <- c('CRY1', 'CRY2')
+clockgenes2 <- c('PER2', 'PER3')
+
+
+datlong %>%
+  filter(gene %in% clock_all, Tissue=="Heart") %>%
+  ggplot(., aes(y=log(counts), x=MetabState_numeric)) +
+  geom_smooth(aes(col=gene)) + 
+  #geom_violin() +
+  my_theme + #facet_wrap(.~Tissue, scales = "free") +
+  ggtitle("Clock genes' expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x))) }
+preproc <- normalize(datlong$counts[datlong$gene =="CLOCK" & datlong$Tissue=="Heart"])
+
+datlong$NormCounts <- NA
+datlong <- datlong %>% group_by(gene,Tissue) %>% mutate(NormCounts = counts/max(counts))
+
+datlong %>%
+  filter(!is.na(gene), gene=='CLOCK') %>%
+  ggplot(., aes(y=NormCounts, x=MetabState_numeric)) +
+  geom_line(aes(col=Tissue), method = 'lm', stat = "smooth", size=2) + 
+  #geom_violin() +
+  my_theme2 + #facet_wrap(.~Tissue, scales = "free") +
+  ggtitle("CLOCK expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  #scale_color_viridis_d(begin = 0, end=1,option = "C", direction = -1) + 
+  scale_color_manual(values = mycols) +
+  theme(axis.text.x = element_text(size=15)) +
+  scale_x_continuous(labels = c("Normothermy", "Transition", "Deep torpor"), breaks = c(1,2,3)) +
+  ylab("Normalized gene count") + xlab("Metabolic state")
+
+datlong %>%
+  filter(!is.na(gene), gene %in% clockgenes1) %>%
+  ggplot(., aes(y=NormCounts, x=MetabState_numeric)) +
+  geom_line(aes(col=Tissue), method = 'lm', stat = "smooth", size=2) + 
+  #geom_violin() +
+  my_theme2 + facet_wrap(.~gene, scales = "free") +
+  ggtitle("CRY expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  #scale_color_viridis_d(begin = 0, end=1,option = "C", direction = -1) + 
+  scale_color_manual(values = mycols) +
+  theme(axis.text.x = element_text(size=15)) +
+  scale_x_continuous(labels = c("Normothermy", "Transition", "Deep torpor"), breaks = c(1,2,3)) +
+  ylab("Normalized gene count") + xlab("Metabolic state")
+
+
+datlong %>%
+  filter(!is.na(gene), gene %in% clockgenes1) %>%
+  ggplot(., aes(y=NormCounts, x=MetabState_numeric)) +
+  geom_line(aes(col=gene),method = 'lm', stat = "smooth", size=2) + 
+  #geom_violin() +
+  my_theme + facet_wrap(.~Tissue, scales = "free") +
+  ggtitle("Clock genes' expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = clock_col) +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Gene counts") + xlab("Metabolic state")
 
 datlong %>%
   filter(gene == 'CLOCK', Tissue %in% c("Heart", "Lungs")) %>%
@@ -1198,7 +1301,7 @@ datlong %>%
   scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
   ylab("Gene counts") + xlab("Metabolic state")
 
-clockgenes1 <- c('CRY1', 'CRY2')
+
 datlong %>%
   filter(gene == clockgenes1, Tissue %in% c("Heart", "Lungs")) %>%
   ggplot(., aes(y=counts, x=Metabolic_State)) +
@@ -1211,7 +1314,6 @@ datlong %>%
   ylab("Gene counts") + xlab("Metabolic state")
 
 
-clockgenes2 <- c('PER2', 'PER3')
 datlong %>%
   filter(gene == clockgenes2, Tissue %in% c("Heart", "Lungs")) %>%
   ggplot(., aes(y=counts, x=Metabolic_State)) +
@@ -1231,6 +1333,28 @@ metabgenes <- c('PPARA', 'SIRT1', 'LEPR')
 # Boxplot/Violin plot of metabolism genes
 datlong %>%
   filter(gene == metabgenes) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  my_theme + facet_wrap(gene~Tissue, scales = "free") +
+  ggtitle("Metabolism genes expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+# Boxplot/Violin plot of metabolism genes just gut
+datlong %>%
+  filter(gene == metabgenes & Tissue %in% c("Gut1", "Gut2", "Gut3")) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  my_theme + facet_wrap(gene~Tissue, scales = "free") +
+  ggtitle("Metabolism genes expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+# Boxplot/Violin plot of metabolism genes just non-gut
+datlong %>%
+  filter(gene == metabgenes & Tissue %in% c("Liver", "Pect", "Heart", "Lungs")) %>%
   ggplot(., aes(y=counts, x=Metabolic_State)) +
   geom_boxplot() + 
   #geom_violin() +

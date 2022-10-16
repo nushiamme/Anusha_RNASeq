@@ -34,13 +34,13 @@ library(ComplexHeatmap)
 
 ## If you opened the .Rproj file from the OneDrive folder, reading in these files will work- 
 ## the relative paths should be the same
-data <- read.csv(here("..//DESeq_Data_Brains_Jun2022//RNASeqBrain_rawcounts_data.csv"))
-meta <- read.csv(here("..//DESeq_Data_Brains_Jun2022//AnushaShankar_brainRNASeq_metadata.csv"))
-#star_alignment <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//star_alignment_plot.csv"))
-#star <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//star_gene_counts.csv"))
-#foldchange <- read.csv(here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//TopFoldChanges.csv"))
+data <- read.csv(here("DESeq_Data_Brains_Jun2022//RNASeqBrain_rawcounts_data.csv"))
+meta <- read.csv(here("DESeq_Data_Brains_Jun2022//AnushaShankar_brainRNASeq_metadata.csv"))
+#star_alignment <- read.csv(here("DESeq_Data_Mar2022_all tissues//all tissues//final//star_alignment_plot.csv"))
+#star <- read.csv(here("DESeq_Data_Mar2022_all tissues//all tissues//final//star_gene_counts.csv"))
+#foldchange <- read.csv(here("DESeq_Data_Mar2022_all tissues//all tissues//final//TopFoldChanges.csv"))
 ## Made this one in this script
-norm_counts_df <- read.csv(here("..//DESeq_Data_Brains_Jun2022//RNASeqBrain_NormCounts.csv"))
+norm_counts_df <- read.csv(here("DESeq_Data_Brains_Jun2022//RNASeqBrain_NormCounts.csv"))
 
 my_theme <- theme_classic(base_size = 15) + 
   theme(panel.border = element_rect(colour = "black", fill=NA)) + theme(legend.key.height = unit(2, "line"))
@@ -52,41 +52,41 @@ my_col_rainbows <- c("#f94144", "#f3722c", "#f8961e", "#f9844a",
 
 #### Don't need to re-do - this is a check, not used in analyses really. #####                    
 ## Checking on the star alignment
-head(star)
-star <- star %>%
-  rename(Sample = ï..Sample) %>%
-  mutate(Sample = gsub("c", "", Sample))
+# head(star)
+# star <- star %>%
+#   rename(Sample = ï..Sample) %>%
+#   mutate(Sample = gsub("c", "", Sample))
 
 #meta2 <- meta %>%
  # rename(Sample = X)
 
 meta2 <- meta
 
-starlong_meta <- star %>%
-  gather(key="Mapped", value="count", -Sample) %>%
-  left_join(., meta2, by="Sample")
-
-starlong_meta %>%
-  mutate(Mapped_relevel = 
-           fct_relevel(Mapped, 
-                       "Overlapping_Genes", "Multimapping", "Unmapped", "Ambiguous_Features", "No_Feature")) %>%
-  ggplot(., aes(Tissue, count, fill=Mapped_relevel)) + 
-  geom_bar(position="fill", stat="identity") +
-  scale_fill_viridis(discrete = T) + my_theme + ylab("Percent counts")
-
-
-starlong_meta %>%
-  ggplot(., aes(Tissue, count, fill=Mapped)) + 
-  geom_bar(position="fill", stat="identity") +
-  scale_fill_viridis(discrete = T)
-
-starlong_meta %>%
-  ggplot(., aes(Tissue, count, fill=Mapped)) + 
-  geom_bar(stat="identity", position="fill") +
-  scale_fill_viridis(discrete = T)
+# starlong_meta <- star %>%
+#   gather(key="Mapped", value="count", -Sample) %>%
+#   left_join(., meta2, by="Sample")
+# 
+# starlong_meta %>%
+#   mutate(Mapped_relevel = 
+#            fct_relevel(Mapped, 
+#                        "Overlapping_Genes", "Multimapping", "Unmapped", "Ambiguous_Features", "No_Feature")) %>%
+#   ggplot(., aes(Tissue, count, fill=Mapped_relevel)) + 
+#   geom_bar(position="fill", stat="identity") +
+#   scale_fill_viridis(discrete = T) + my_theme + ylab("Percent counts")
+# 
+# 
+# starlong_meta %>%
+#   ggplot(., aes(Tissue, count, fill=Mapped)) + 
+#   geom_bar(position="fill", stat="identity") +
+#   scale_fill_viridis(discrete = T)
+# 
+# starlong_meta %>%
+#   ggplot(., aes(Tissue, count, fill=Mapped)) + 
+#   geom_bar(stat="identity", position="fill") +
+#   scale_fill_viridis(discrete = T)
 
 ### Start on the deSeq part of analysis ####
-rownames(meta) <- unique(meta$BirdID_Tissue)
+rownames(meta) <- unique(meta$Sample)
 rownames(data) <- unique(data$X)
 data <- subset(data, select = -c(X))
 #meta <- subset(meta, select = -c(X))
@@ -177,13 +177,13 @@ plotDispEsts(dds)
 
 ## Save results
 res_unshrunken <- results(dds)
-res <- results(dds)
+res_raw <- results(dds)
 
 ## Take a quick look at the results
 res_unshrunken
 
 ## Summary of results
-summary(res)
+summary(res_raw)
 
 ## Compare different pairs
 res_ND <- results(dds, contrast=c("Metabolic_State", "D", "N"))
@@ -216,7 +216,7 @@ results(dds, contrast=c("Metabolic_State", "D", "N"),)
 # summary(res_TD_0.01)
 
 ## Shrinking
-res <- lfcShrink(dds, coef = 3, res = res)
+res <- lfcShrink(dds, coef = 3, res = res_raw)
 #res
 
 ## Fold change results
@@ -227,7 +227,9 @@ summary(res)
 
 ### Set thresholds
 padj.cutoff <- 0.05
-lfc.cutoff <- 0.58 ## equal to fold change of 1.5
+lfc.cutoff <- 0.58 ## 0.58 equal to fold change of 1.5, but looking at this next line's plot, inflection point is at 0.5 l2fc
+
+ggplot(res_tb, aes(log2FoldChange)) + geom_density() + geom_vline(xintercept = c(-0.5, 0.5), col="red") + my_theme
 
 ## We can easily subset the results table to only include 
 ## those that are significant using the filter() function, but first we will convert the results table into a tibble:
@@ -239,6 +241,14 @@ res_tb <- res_ND %>%
 ## Just subset significantly different genes
 sig <- res_tb %>%
   filter(padj < padj.cutoff & abs(log2FoldChange) > lfc.cutoff)
+
+## Just subset significantly upreg genes
+sig_up <- res_tb %>%
+  filter(padj < padj.cutoff & log2FoldChange > lfc.cutoff)
+
+## Just subset significantly upreg genes
+sig_down <- res_tb %>%
+  filter(padj < padj.cutoff & log2FoldChange < -lfc.cutoff)
 
 
 # Create tibbles including row names of normalized counts
@@ -267,7 +277,7 @@ upreg_ND <-  res_ND %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange>1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange>lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -275,7 +285,7 @@ downreg_ND <-  res_ND %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange < -1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange < -lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -284,7 +294,7 @@ upreg_NT <-  res_NT %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange>1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange>lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -292,7 +302,7 @@ downreg_NT <-  res_NT %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange< -1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange< -lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -301,7 +311,7 @@ upreg_TD <-  res_TD %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange>1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange>lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -309,7 +319,7 @@ downreg_TD <-  res_TD %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble() %>%
-  filter(log2FoldChange< -1 & padj < 0.05 & baseMean > 10) %>%
+  filter(log2FoldChange< -lfc.cutoff & padj < padj.cutoff & baseMean > 10) %>%
   arrange(padj) %>%
   pull(gene)
 
@@ -681,7 +691,7 @@ pheatmap(norm_sig_ND_upreg,
          scale = "row", 
          fontsize_row = 10,
          fontsize_col = 10,
-         height = 20,
+         #height = 20,
          cluster_cols = F,
          legend = T,
          fontsize = 20)
