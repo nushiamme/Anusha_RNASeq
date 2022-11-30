@@ -227,9 +227,8 @@ summary(res)
 
 ### Set thresholds
 padj.cutoff <- 0.05
-lfc.cutoff <- 0.58 ## 0.58 equal to fold change of 1.5, but looking at this next line's plot, inflection point is at 0.5 l2fc
+lfc.cutoff <- 0.58 ## 0.58 equal to fold change of 1.5, but looking at this following ggplot a few lines down, inflection point is at 0.5 l2fc
 
-ggplot(res_tb, aes(log2FoldChange)) + geom_density() + geom_vline(xintercept = c(-0.5, 0.5), col="red") + my_theme
 
 ## We can easily subset the results table to only include 
 ## those that are significant using the filter() function, but first we will convert the results table into a tibble:
@@ -237,6 +236,9 @@ res_tb <- res_ND %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
   as_tibble()
+
+ggplot(res_tb, aes(log2FoldChange)) + geom_density() + geom_vline(xintercept = c(-0.5, 0.5), col="red") + my_theme
+
 
 ## Just subset significantly different genes
 sig <- res_tb %>%
@@ -1021,7 +1023,7 @@ ND_adj_volcano_CB <- EnhancedVolcano(res_CB_ND, lab = rownames(res_CB_ND),
                                         subtitle = "Enhanced volcano, adj p cutoff = 0.05")
 ND_adj_volcano_CB
 
-
+allGenesExceptLOC <- rownames(res_CB_ND[!grepl("LOC",row.names(res_CB_ND)),])
 ND_adj_volcano_DI <- EnhancedVolcano(res_DI_ND, lab = rownames(res_DI_ND),
                                         x = 'log2FoldChange',
                                         y = 'padj',
@@ -1031,8 +1033,59 @@ ND_adj_volcano_DI <- EnhancedVolcano(res_DI_ND, lab = rownames(res_DI_ND),
                                         FCcutoff = 1.0,
                                         #transcriptLabSize = 3.0,
                                         colAlpha = 1,
-                                        title = 'DI: Deep Torpor vs. Normothermy',
-                                        subtitle = "Enhanced volcano, adj p cutoff = 0.05")
+                                        title = 'Differentially expressed genes in the hypothalamus between deep torpor and normothermy',
+                                        subtitle = "Enhanced volcano, adj p cutoff = 0.05",
+                                      #selectLab = allGenesExceptLOC,
+                                     selectLab = c('MEX3C','RSRP1','IFT52','ARR3','LSMEM1','SRGN','CA14','METTL27','GNAT2','MEX3D','EDN1','SLC16A6','SUSD1','CCSER1','HEPACAM2'))
+ND_adj_volcano_DI
+
+DI_ND <- as.data.frame(res_DI_ND)
+DI.sub <- DI_ND[row.names(DI_ND) %in% c('MEX3C','RSRP1','IFT52','ARR3','LSMEM1','SRGN',
+                                                      'CA14','METTL27','GNAT2','MEX3D','EDN1','SLC16A6','SUSD1',
+                                                      'CCSER1','HEPACAM2'),]
+DI.sub$gene <- row.names(DI.sub)
+#DI.sub <- cbind(DI.sub, labels)
+DI.sub <- DI.sub %>% 
+  select(log2FoldChange, padj, gene)
+DI_ND$colr <- NA
+DI_ND$colr[DI_ND$log2FoldChange>1 & DI_ND$padj<0.05] <- "Upregulated" 
+DI_ND$colr[DI_ND$log2FoldChange < -1 & DI_ND$padj<0.05] <- "Downregulated" 
+
+
+DI_ND %>%
+  ggplot(aes(x = log2FoldChange, y = -log10(padj))) +
+             # fill = gene_type,
+             # size = gene_type,
+             # alpha = gene_type)) +
+  geom_point(aes(fill=colr, col=colr), shape = 21, size=3) +
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") +
+  geom_vline(xintercept = c(log2(0.5), log2(2)),
+             linetype = "dashed") +
+  geom_label_repel(data = DI.sub,
+                   mapping = aes(label = gene), size = 3.5,
+                   alpha = 1, force = 2, nudge_y = 1, max.overlaps = 20) +
+  scale_fill_manual(values = c("green", "red", "black")) +
+  scale_color_manual(values = c("green", "red", "black")) +
+  ggtitle(label = "Differentially expressed genes in the hypothalamus between deep torpor and normothermy") +
+  #scale_size_manual(values = sizes) +
+  #scale_alpha_manual(values = alphas) +
+  xlim(-6, 6) + my_theme
+
+
+ND_adj_volcano_DI <- EnhancedVolcano(res_DI_ND, lab = row.names(res_DI_ND),
+                                    x = 'log2FoldChange',
+                                    y = 'padj',
+                                    #xlab = bquote(~Log[2]~ "fold change"),
+                                    ylab = bquote(-Log[10]~adjusted~italic(P)),
+                                    pCutoff = 0.05,
+                                    FCcutoff = 1.0,
+                                    #transcriptLabSize = 3.0,
+                                    colAlpha = 1,
+                                    title = 'Differentially expressed genes in the hypothalamus between deep torpor and normothermy',
+                                    #subtitle = "",
+                                    selectLab = allGenesExceptLOC)
+                                    #selectLab = 'MEX3C','RSRP1','IFT52','ARR3','LSMEM1','SRGN','CA14','METTL27','GNAT2','MEX3D','EDN1','SLC16A6','SUSD1','CCSER1','HEPACAM2')
 ND_adj_volcano_DI
 
 ND_adj_volcano_RT <- EnhancedVolcano(res_RT_ND, lab = rownames(res_RT_ND),
