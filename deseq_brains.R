@@ -42,8 +42,11 @@ meta <- read.csv(here("DESeq_Data_Brains_Jun2022//AnushaShankar_brainRNASeq_meta
 ## Made this one in this script
 norm_counts_df <- read.csv(here("DESeq_Data_Brains_Jun2022//RNASeqBrain_NormCounts.csv"))
 
-my_theme <- theme_classic(base_size = 15) + 
+my_theme <- theme_classic(base_size = 30) + 
   theme(panel.border = element_rect(colour = "black", fill=NA)) + theme(legend.key.height = unit(2, "line"))
+my_theme2 <- theme_classic(base_size = 15) + 
+  theme(panel.border = element_rect(colour = "black", fill=NA)) + theme(legend.key.height = unit(2, "line"))
+
 
 ## Viridis colors
 my_gradient <- c("#823de9", "#7855ce", "#6e6eb2", "#648697", "#599e7c", "#4fb760", "#45cf45")
@@ -1124,7 +1127,7 @@ datlong %>%
   filter(gene %in% c("DIO2", "DIO3")) %>%
   ggplot(., aes(x=counts, fill=Metabolic_State)) +
   geom_density(alpha=0.5) + my_theme + facet_wrap(.~Tissue, scales = "free") +
-  ggtitle("RSRP1 gene expression across tissues and metabolic states")
+  ggtitle("DIO2 and DIO3 gene expression across tissues and metabolic states")
 
 # Boxplot/Violin plot of DIO3
 datlong %>%
@@ -1133,8 +1136,36 @@ datlong %>%
   geom_boxplot() + geom_point() +
   #geom_violin() +
   my_theme + facet_grid(.~Tissue, scales = "free") +
-  ggtitle("DIO3 gene expression across tissues and metabolic states") +
+  ggtitle("DIO2 gene expression across tissues and metabolic states") +
   theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+## Line plots
+datlong %>%
+  filter(gene == "DIO2") %>%
+  ggplot(., aes(y=counts, x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=Tissue)) +
+  geom_smooth(aes(col=Tissue), method="lm") + 
+  #geom_violin() +
+  my_theme + #facet_grid(.~Tissue, scales = "free") +
+  #ggtitle("DIO2 gene expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+datlong %>%
+  filter(gene == "DIO3") %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_point() +
+  geom_smooth(aes(group=Tissue), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_wrap(Tissue~., scales = "free") +
+  ggtitle("DIO3 gene expression across tissues and metabolic states") +
+  scale_x_discrete(labels=c("N" = "Normothermic", "T" = "Transition",
+                            "D" = "Deep Torpor")) +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15)) +
   ylab("Gene counts") + xlab("Metabolic state")
 
 datlong %>%
@@ -1145,6 +1176,124 @@ datlong %>%
   my_theme + facet_grid(gene~Tissue, scales = "free") +
   ggtitle("DIO3 gene expression across tissues and metabolic states") +
   theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+datlong %>%
+  filter(gene %in% c("DIO2", "DIO3")) %>%
+  ggplot(., aes(y=counts, x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=gene), size=3) +
+  geom_smooth(aes(col=gene), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(gene~Tissue, scales = "free") +
+  ggtitle("DIO gene expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15, angle=90, vjust=0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+
+## Line plots
+datlong %>%
+  filter(gene == "CLOCK") %>%
+  ggplot(., aes(y=log(counts), x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=Tissue)) +
+  geom_smooth(aes(col=Tissue), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(.~Tissue, scales = "free") +
+  ggtitle("CLOCK gene expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+
+
+## Line plots
+datlong %>%
+  filter(gene == "CRY2") %>%
+  ggplot(., aes(y=log(counts), x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=Tissue)) +
+  geom_smooth(aes(col=Tissue), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(.~Tissue, scales = "free") +
+  ggtitle("CRY2 gene expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+datlong %>%
+  filter(gene == "CRY1") %>%
+  ggplot(., aes(y=log(counts), x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=Tissue)) +
+  geom_smooth(aes(col=Tissue), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(.~Tissue, scales = "free") +
+  ggtitle("CRY1 gene expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+datlong %>%
+  filter(gene == "PER2") %>%
+  ggplot(., aes(y=log(counts), x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=Tissue)) +
+  geom_smooth(aes(col=Tissue), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(.~Tissue, scales = "free") +
+  ggtitle("PER2 gene expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+datlong %>%
+  filter(gene == c("PER2", "PER3")) %>%
+  ggplot(., aes(y=counts, x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=gene)) +
+  geom_smooth(aes(col=gene), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(.~Tissue, scales = "free") +
+  ggtitle("PER gene expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15, angle=90, vjust=0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+datlong %>%
+  filter(gene == c("CRY1", "CRY2")) %>%
+  ggplot(., aes(y=counts, x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=gene)) +
+  geom_smooth(aes(col=gene), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(gene~Tissue, scales = "free") +
+  ggtitle("CRY genes expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15, angle=90, vjust=0.5)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+
+datlong %>%
+  filter(gene == c("EYA3")) %>%
+  ggplot(., aes(y=counts, x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=gene)) +
+  geom_smooth(aes(col=gene), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(gene~Tissue, scales = "free") +
+  ggtitle("EYA3 genes expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15, angle=90, vjust=0.5)) +
   ylab("Gene counts") + xlab("Metabolic state")
 
 
