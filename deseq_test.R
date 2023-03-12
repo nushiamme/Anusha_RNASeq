@@ -58,7 +58,7 @@ my_theme2 <- theme_classic(base_size = 20) +
 my_gradient <- c("#823de9", "#7855ce", "#6e6eb2", "#648697", "#599e7c", "#4fb760", "#45cf45")
 my_col_rainbows <- c("#f94144", "#f3722c", "#f8961e", "#f9844a",
                      "#f9c74f", "#90be6d", "#43aa8b", "#4d908e", "#577590", "#277da1")
-mycols <- c("orange", "navy", "springgreen4", "mediumorchid", "gold4", "plum1", "springgreen")
+mycols <- c("orange", "navy", "springgreen4", "mediumorchid", "#760431", "plum1", "springgreen")
 
 #### Don't need to re-do - this is a check, not used in analyses really.                     
 ## Checking on the star alignment
@@ -176,7 +176,7 @@ plotPCA_jh = function(pp1=1, pp2=2,
     xlab(paste0("PC", pp1, ": ",round(percentVar[pp1] * 100),"% variance")) +
     ylab(paste0("PC", pp2, ": ",round(percentVar[pp2] * 100),"% variance")) +
     #scale_color_brewer(type = "qual", palette = "Dark2", direction = 1)+
-    colorspace::scale_color_discrete_qualitative(palette = "Dark 3", rev = TRUE)+
+    #colorspace::scale_color_discrete_qualitative(palette = "Dark 3", rev = TRUE)+
     cowplot::theme_cowplot()+
     coord_fixed()
 }
@@ -1362,6 +1362,43 @@ datlong %>%
   ggtitle("Metabolism genes expression across tissues and metabolic states") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Gene counts") + xlab("Metabolic state")
+
+## Heat shock protein factors
+unique(datlong$gene[grep("HSF", datlong$gene)]) # 'HSF4', 'HSF2', 'HSF2BP'
+datlong %>%
+  filter(gene == c('HSF4')) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  my_theme2 + facet_wrap(.~Tissue, scales = "free") +
+  ggtitle("HSF4 gene expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+datlong %>%
+  filter(gene == c('HSF2')) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  my_theme2 + facet_wrap(.~Tissue, scales = "free") +
+  ggtitle("HSF2 gene expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+datlong %>%
+  filter(gene == c('HSF2BP')) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  my_theme2 + facet_wrap(.~Tissue, scales = "free") +
+  ggtitle("HSF2BP gene expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+
 
 
 ## Examples
