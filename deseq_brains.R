@@ -1398,6 +1398,50 @@ datlong %>%
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Gene counts") + xlab("Metabolic state")
 
+## Heat shock proteins
+unique(datlong$gene[grep("HSF", datlong$gene)]) # 'HSF4', 'HSF2', 'HSF2BP'
+datlong %>%
+  filter(gene == "HSF4") %>%
+  ggplot(., aes(y=log(counts), x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=Tissue)) +
+  geom_smooth(aes(col=Tissue), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(.~Tissue, scales = "free") +
+  ggtitle("HSF4 gene expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+datlong %>%
+  filter(gene == "HSF2") %>%
+  ggplot(., aes(y=log(counts), x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=Tissue)) +
+  geom_smooth(aes(col=Tissue), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(.~Tissue, scales = "free") +
+  ggtitle("HSF2 gene expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
+datlong %>%
+  filter(gene == "HSF2BP") %>%
+  ggplot(., aes(y=log(counts), x=as.numeric(Metabolic_State))) +
+  geom_point(aes(col=Tissue)) +
+  geom_smooth(aes(col=Tissue), method="lm") + 
+  #geom_violin() +
+  my_theme + facet_grid(.~Tissue, scales = "free") +
+  ggtitle("HSF2BP gene expression across tissues and metabolic states") +
+  scale_x_continuous(breaks = c(1,2,3), labels = c("Normothermic", "Transition", "Deep Torpor")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15)) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
 
 #old, manually selected from each tissue type
 #genes.of.interest <- c('NR1D1', 'SGK1', 'RSRP1', 'DUSP1', 'NME5', 'TMEM39B', 'BHLHE40', 'LOC115598688')

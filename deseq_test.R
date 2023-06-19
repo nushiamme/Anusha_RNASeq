@@ -186,9 +186,9 @@ pc12 <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vst_dds, intgroup = "Tissue") + geom
 pc13 <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vst_dds, intgroup = "Tissue") + 
   geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Tissue")
 
-grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
-library(cowplot)
-plot_grid(pc12, pc13, align = "h", rel_widths = c(0.45, 0.55))
+# grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
+# library(cowplot)
+# plot_grid(pc12, pc13, align = "h", rel_widths = c(0.45, 0.55))
 
 ## Sample tissue one- just heart
 heart_dds <- dds[,dds$Tissue=="Heart"]
@@ -200,7 +200,7 @@ pc13_heart <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vstdds_heart, intgroup = "Meta
                                                       labels=c("Normothermy", "Transition", "Deep torpor"))
 
 #grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
-plot_grid(pc12_heart, pc13_heart, align = "h", rel_widths = c(1.5, 2))
+# plot_grid(pc12_heart, pc13_heart, align = "h", rel_widths = c(1.5, 2))
 
 
 ## Get normalized data, save it RE-RUN only if necessary
@@ -237,14 +237,14 @@ meta2$Tissue_State <- paste0(meta2$Tissue, "_", meta2$Metabolic_State)
 
 phenotype_labs <- data.frame()
 
-phenotype_labs_state <- rbind(phenotype_labs, meta2$Metabolic_State)
-write.csv(phenotype_labs_state, file = here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//Pheno_labs_state.csv"))
-
-phenotype_labs_tissue <- rbind(phenotype_labs, meta2$Tissue)
-write.csv(phenotype_labs_state, file = here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//Pheno_labs_tissue.csv"))
-
-phenotype_labs_state <- rbind(phenotype_labs, meta2$Tissue_State)
-write.csv(phenotype_labs_state, file = here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//Pheno_labs_tissue_state.csv"))
+# phenotype_labs_state <- rbind(phenotype_labs, meta2$Metabolic_State)
+# write.csv(phenotype_labs_state, file = here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//Pheno_labs_state.csv"))
+# 
+# phenotype_labs_tissue <- rbind(phenotype_labs, meta2$Tissue)
+# write.csv(phenotype_labs_state, file = here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//Pheno_labs_tissue.csv"))
+# 
+# phenotype_labs_state <- rbind(phenotype_labs, meta2$Tissue_State)
+# write.csv(phenotype_labs_state, file = here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//Pheno_labs_tissue_state.csv"))
 
 
 ## If you have technical replicates, collapse them now. We don't.. we only have biological replicates. 
@@ -417,7 +417,7 @@ gathered_top_upreg_ND <- top_upreg_ND_norm %>%
   gather(colnames(top_upreg_ND_norm)[2:120], key = "Sample", value = "normalized_counts")
 
 ## check the column header in the "gathered" data frame
-View(gathered_top_upreg_ND)
+# View(gathered_top_upreg_ND)
 
 gathered_top_upreg_ND <- inner_join(meta2, gathered_top_upreg_ND, by="Sample")
 
@@ -525,7 +525,7 @@ gathered_top_upreg_Liver_ND <- top_upreg_Liver_ND_norm %>%
          key = "Sample", value = "normalized_counts")
 
 ## check the column header in the "gathered" data frame
-View(gathered_top_upreg_Liver_ND)
+# View(gathered_top_upreg_Liver_ND)
 
 gathered_top_upreg_Liver_ND <- inner_join(meta2, gathered_top_upreg_Liver_ND, by="Sample")
 
@@ -549,7 +549,7 @@ gathered_top_downreg_Liver_ND <- top_downreg_Liver_ND_norm %>%
          key = "Sample", value = "normalized_counts")
 
 ## check the column header in the "gathered" data frame
-View(gathered_top_downreg_Liver_ND)
+# View(gathered_top_downreg_Liver_ND)
 
 gathered_top_downreg_Liver_ND <- inner_join(meta2, gathered_top_downreg_Liver_ND, by="Sample")
 
@@ -1374,7 +1374,7 @@ datlong %>%
   ggtitle("HSF4 gene expression across tissues and metabolic states") +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
-  ylab("Gene counts") + xlab("Metabolic state")
+  ylab("Transcript counts") + xlab("Metabolic state")
 
 datlong %>%
   filter(gene == c('HSF2')) %>%
@@ -1385,7 +1385,7 @@ datlong %>%
   ggtitle("HSF2 gene expression across tissues and metabolic states") +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
-  ylab("Gene counts") + xlab("Metabolic state")
+  ylab("Transcript counts") + xlab("Metabolic state")
 
 datlong %>%
   filter(gene == c('HSF2BP')) %>%
@@ -1396,7 +1396,7 @@ datlong %>%
   ggtitle("HSF2BP gene expression across tissues and metabolic states") +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
-  ylab("Gene counts") + xlab("Metabolic state")
+  ylab("Transcript counts") + xlab("Metabolic state")
 
 
 
