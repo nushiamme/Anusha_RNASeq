@@ -167,6 +167,7 @@ write.csv(phenotype_labs_state, file = here("..//DESeq_Data_Brains_Jun2022//Phen
 # Do not collapse those.
 
 
+
 ### can run here onwards every time
 ## Take a look at the data a bit
 ## Total number of raw counts per sample
@@ -240,7 +241,7 @@ res_tb <- res_ND %>%
   rownames_to_column(var="gene") %>% 
   as_tibble()
 
-ggplot(res_tb, aes(log2FoldChange)) + geom_density() + geom_vline(xintercept = c(-0.5, 0.5), col="red") + my_theme
+ggplot(res_tb, aes(log2FoldChange)) + geom_density() + geom_vline(xintercept = c(-0.58, 0.58), col="red") + my_theme
 
 
 ## Just subset significantly different genes
@@ -1051,8 +1052,8 @@ DI.sub$gene <- row.names(DI.sub)
 DI.sub <- DI.sub %>% 
   select(log2FoldChange, padj, gene)
 DI_ND$colr <- NA
-DI_ND$colr[DI_ND$log2FoldChange>1 & DI_ND$padj<0.05] <- "Upregulated" 
-DI_ND$colr[DI_ND$log2FoldChange < -1 & DI_ND$padj<0.05] <- "Downregulated" 
+DI_ND$colr[DI_ND$log2FoldChange > 0.58 & DI_ND$padj<0.05] <- "Upregulated" 
+DI_ND$colr[DI_ND$log2FoldChange < -0.58 & DI_ND$padj<0.05] <- "Downregulated" 
 
 
 DI_ND %>%
@@ -1063,17 +1064,19 @@ DI_ND %>%
   geom_point(aes(fill=colr, col=colr), shape = 21, size=3) +
   geom_hline(yintercept = -log10(0.05),
              linetype = "dashed") +
-  geom_vline(xintercept = c(log2(0.5), log2(2)),
+  geom_vline(xintercept = c(-0.58, 0.58),
              linetype = "dashed") +
   geom_label_repel(data = DI.sub,
                    mapping = aes(label = gene), size = 3.5,
-                   alpha = 1, force = 2, nudge_y = 1, max.overlaps = 20) +
-  scale_fill_manual(values = c("green", "red", "black")) +
-  scale_color_manual(values = c("green", "red", "black")) +
+                   alpha = 1, force = 2, nudge_y = 1, max.overlaps = 30) +
+  scale_fill_manual(values = c("#F8756D", "#23988aff", "black")) +
+  scale_color_manual(values = c("#F8756D", "#23988aff", "black")) +
   ggtitle(label = "Differentially expressed genes in the hypothalamus between deep torpor and normothermy") +
   #scale_size_manual(values = sizes) +
   #scale_alpha_manual(values = alphas) +
-  xlim(-6, 6) + my_theme
+  xlim(-4, 4) + my_theme +
+  theme(legend.title=element_blank())
+
 
 
 ND_adj_volcano_DI <- EnhancedVolcano(res_DI_ND, lab = row.names(res_DI_ND),
@@ -1340,7 +1343,7 @@ datlong %>%
   ggplot(., aes(y=counts, x=Metabolic_State)) +
   geom_boxplot() + 
   #geom_violin() +
-  my_theme + facet_wrap(Tissue~gene, scales = "free") +
+  my_theme2 + facet_wrap(Tissue~gene, scales = "free") +
   ggtitle("Clock genes expression across tissues and metabolic states") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Gene counts") + xlab("Metabolic state")

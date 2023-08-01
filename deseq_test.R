@@ -132,71 +132,71 @@ vst_dds <- vst(dds,blind=TRUE, fitType='local')
 # tissue_pca + geom_point(size=4) + my_theme + scale_color_manual(values = mycols, name = "Tissue")
 
 ## Use this
-plotPCA_jh = function(pp1=1, pp2=2, 
-                      object, intgroup="condition", 
-                      ntop=1000, returnData=FALSE) {
-  
-  
-  # calculate the variance for each gene
-  rv <- rowVars(assay(object))
-  
-  # select the ntop genes by variance
-  select <- order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
-  
-  # perform a PCA on the data in assay(x) for the selected genes
-  pca <- prcomp(t(assay(object)[select,]))
-  
-  # the contribution to the total variance for each component
-  percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
-  
-  if (!all(intgroup %in% names(colData(object)))) {
-    stop("the argument 'intgroup' should specify columns of colData(dds)")
-  }
-  
-  intgroup.df <- as.data.frame(colData(object)[, intgroup, drop=FALSE])
-  
-  # add the intgroup factors together to create a new grouping factor
-  group <- if (length(intgroup) > 1) {
-    factor(apply(intgroup.df, 1, paste, collapse=":"))
-  } else {
-    colData(object)[[intgroup]]
-  }
-  
-  # assembly the data for the plot
-  d <- data.frame(PC1=pca$x[,pp1], PC2=pca$x[,pp2], group=group, intgroup.df, 
-                  name=colnames(object))
-  
-  if (returnData) {
-    attr(d, "percentVar") <- percentVar[pp1:pp2]
-    return(d)
-  }
-  
-  ggplot(data=d, aes_string(x="PC1", y="PC2", color="group", label = "name")) + 
-    geom_point(size=3) + 
-    xlab(paste0("PC", pp1, ": ",round(percentVar[pp1] * 100),"% variance")) +
-    ylab(paste0("PC", pp2, ": ",round(percentVar[pp2] * 100),"% variance")) +
-    #scale_color_brewer(type = "qual", palette = "Dark2", direction = 1)+
-    #colorspace::scale_color_discrete_qualitative(palette = "Dark 3", rev = TRUE)+
-    cowplot::theme_cowplot()+
-    coord_fixed()
-}
+# plotPCA_jh = function(pp1=1, pp2=2, 
+#                       object, intgroup="condition", 
+#                       ntop=1000, returnData=FALSE) {
+#   
+#   
+#   # calculate the variance for each gene
+#   rv <- rowVars(assay(object))
+#   
+#   # select the ntop genes by variance
+#   select <- order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
+#   
+#   # perform a PCA on the data in assay(x) for the selected genes
+#   pca <- prcomp(t(assay(object)[select,]))
+#   
+#   # the contribution to the total variance for each component
+#   percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
+#   
+#   if (!all(intgroup %in% names(colData(object)))) {
+#     stop("the argument 'intgroup' should specify columns of colData(dds)")
+#   }
+#   
+#   intgroup.df <- as.data.frame(colData(object)[, intgroup, drop=FALSE])
+#   
+#   # add the intgroup factors together to create a new grouping factor
+#   group <- if (length(intgroup) > 1) {
+#     factor(apply(intgroup.df, 1, paste, collapse=":"))
+#   } else {
+#     colData(object)[[intgroup]]
+#   }
+#   
+#   # assembly the data for the plot
+#   d <- data.frame(PC1=pca$x[,pp1], PC2=pca$x[,pp2], group=group, intgroup.df, 
+#                   name=colnames(object))
+#   
+#   if (returnData) {
+#     attr(d, "percentVar") <- percentVar[pp1:pp2]
+#     return(d)
+#   }
+#   
+#   ggplot(data=d, aes_string(x="PC1", y="PC2", color="group", label = "name")) + 
+#     geom_point(size=3) + 
+#     xlab(paste0("PC", pp1, ": ",round(percentVar[pp1] * 100),"% variance")) +
+#     ylab(paste0("PC", pp2, ": ",round(percentVar[pp2] * 100),"% variance")) +
+#     #scale_color_brewer(type = "qual", palette = "Dark2", direction = 1)+
+#     #colorspace::scale_color_discrete_qualitative(palette = "Dark 3", rev = TRUE)+
+#     cowplot::theme_cowplot()+
+#     coord_fixed()
+# }
 
-pc12 <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vst_dds, intgroup = "Tissue") + geom_point(size=4) + 
-  guides(col="none") + my_theme2 + scale_color_manual(values = mycols)
-pc13 <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vst_dds, intgroup = "Tissue") + 
-  geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Tissue")
-
+# pc12 <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vst_dds, intgroup = "Tissue") + geom_point(size=4) + 
+#   guides(col="none") + my_theme2 + scale_color_manual(values = mycols)
+# pc13 <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vst_dds, intgroup = "Tissue") + 
+#   geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Tissue")
+# 
 # grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
 # library(cowplot)
 # plot_grid(pc12, pc13, align = "h", rel_widths = c(0.45, 0.55))
 
 ## Sample tissue one- just heart
-heart_dds <- dds[,dds$Tissue=="Heart"]
-vstdds_heart <- vst(heart_dds,blind=TRUE, fitType='local')
-pc12_heart <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vstdds_heart, intgroup = "Metabolic_State") + geom_point(size=4) + 
-  guides(col="none") + my_theme2 + scale_color_manual(values = mycols)
-pc13_heart <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vstdds_heart, intgroup = "Metabolic_State") + 
-  geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Metabolic_State", 
+# heart_dds <- dds[,dds$Tissue=="Heart"]
+# vstdds_heart <- vst(heart_dds,blind=TRUE, fitType='local')
+# pc12_heart <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vstdds_heart, intgroup = "Metabolic_State") + geom_point(size=4) + 
+#   guides(col="none") + my_theme2 + scale_color_manual(values = mycols)
+# pc13_heart <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vstdds_heart, intgroup = "Metabolic_State") + 
+#   geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Metabolic_State", 
                                                       labels=c("Normothermy", "Transition", "Deep torpor"))
 
 #grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
@@ -1398,7 +1398,45 @@ datlong %>%
   scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
   ylab("Transcript counts") + xlab("Metabolic state")
 
+## Find which gene names contain a substring
+cox_genes <- unique(datlong$gene[grepl("COX", datlong$gene)])
+atp_genes <- unique(datlong$gene[grepl("ATP", datlong$gene)])
+atp_genes_top <- unique(datlong$gene[grepl("ATP", datlong$gene) & datlong$counts>1000])
 
+nd_genes <- unique(datlong$gene[grepl("ND", datlong$gene)])
+
+## COX genes, ATP, and ND - mitochondrial genes(?)
+datlong %>%
+  filter(gene %in% cox_genes) %>%
+  ggplot(., aes(y=counts, x=Metabolic_State)) +
+  geom_boxplot() + 
+  #geom_violin() +
+  #my_theme2 + 
+  facet_wrap(gene~Tissue, scales = "free") +
+  ggtitle("COX genes' expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Transcript counts") + xlab("Metabolic state")
+
+datlong_atpgenes <- datlong[(datlong$gene %in% atp_genes_top),]
+## order datlong_atpgenes by counts
+datlong_atpgenes <- datlong_atpgenes[order(datlong_atpgenes$counts),]
+
+
+datlong_atpgenes %>%
+  filter(gene %in% atp_genes) %>%
+  ggplot(., aes(y=log(counts), x=Metabolic_State)) +
+  geom_line(aes(group=gene, col=gene), method = 'lm', stat = "smooth") + 
+  #geom_boxplot() +
+  geom_point(aes(col=gene), size=4) +
+  scale_color_viridis_d() +
+  #geom_violin() +
+  #my_theme2 + 
+  facet_wrap(.~Tissue, scales = "free") +
+  ggtitle("ATP genes' expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Transcript counts") + xlab("Metabolic state")
 
 
 ## Examples
