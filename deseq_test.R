@@ -197,7 +197,7 @@ vst_dds <- vst(dds,blind=TRUE, fitType='local')
 #   guides(col="none") + my_theme2 + scale_color_manual(values = mycols)
 # pc13_heart <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vstdds_heart, intgroup = "Metabolic_State") + 
 #   geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Metabolic_State", 
-                                                      labels=c("Normothermy", "Transition", "Deep torpor"))
+                                                     # labels=c("Normothermy", "Transition", "Deep torpor"))
 
 #grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
 # plot_grid(pc12_heart, pc13_heart, align = "h", rel_widths = c(1.5, 2))
@@ -421,16 +421,16 @@ gathered_top_upreg_ND <- top_upreg_ND_norm %>%
 
 gathered_top_upreg_ND <- inner_join(meta2, gathered_top_upreg_ND, by="Sample")
 
-## Plot this subset of these upreg genes
-ggplot(gathered_top_upreg_ND) + #facet_grid(.~Metabolic_State) +
-  geom_point(aes(x = gene, y = normalized_counts, color = Tissue)) +
-  scale_y_log10() + 
-  xlab("Genes") +
-  ylab("log10 Normalized Counts") +
-  ggtitle("Top sig upregulated genes Deep Torpor vs. Normo") +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  theme(plot.title = element_text(hjust = 0.5)) + scale_color_viridis_d()
+# ## Plot this subset of these upreg genes
+# ggplot(gathered_top_upreg_ND) + #facet_grid(.~Metabolic_State) +
+#   geom_point(aes(x = gene, y = normalized_counts, color = Tissue)) +
+#   scale_y_log10() + 
+#   xlab("Genes") +
+#   ylab("log10 Normalized Counts") +
+#   ggtitle("Top sig upregulated genes Deep Torpor vs. Normo") +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   theme(plot.title = element_text(hjust = 0.5)) + scale_color_viridis_d()
 
 
 ### Extract normalized expression for significant genes from the samples 
@@ -1230,6 +1230,19 @@ clock_col <- c("black", "pink", "red", "green", "blue")
 clockgenes1 <- c('CRY1', 'CRY2')
 clockgenes2 <- c('PER2', 'PER3')
 
+### RMBs
+rbm <- c("RBM34")
+datlong %>%
+  filter(gene %in% rbm, Tissue=="Heart") %>%
+  ggplot(., aes(y=log(counts), x=MetabState_numeric)) +
+  geom_smooth(aes(col=gene)) + 
+  #geom_violin() +
+  my_theme + #facet_wrap(.~Tissue, scales = "free") +
+  ggtitle("Clock genes' expression across tissues and metabolic states") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Gene counts") + xlab("Metabolic state")
+
 
 datlong %>%
   filter(gene %in% clock_all, Tissue=="Heart") %>%
@@ -1300,6 +1313,34 @@ datlong %>%
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
   ylab("Gene counts") + xlab("Metabolic state")
+
+## For Pauli - just normo CLOCK
+level_order <- c('Pect', 'Lungs', 'Gut1', 'Heart', 'Liver')
+datlong %>%
+  filter(gene == 'CLOCK', Tissue %in% c("Heart", "Lungs", "Liver", 
+                                        "Gut1", "Pect"), Metabolic_State == "N") %>%
+  ggplot(., aes(y=counts, x=Tissue)) +
+  geom_boxplot(aes(x=factor(Tissue, level = level_order))) + 
+  #geom_violin() +
+  my_theme + #facet_wrap(.~Tissue, scales = "free") +
+  ggtitle("CLOCK gene expression across tissues") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  #scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Gene counts") + xlab("Tissue")
+
+
+## For Pauli - just normo all clock genes
+datlong %>%
+  filter(gene %in% clock_all, Tissue %in% c("Heart", "Lungs", "Liver", 
+                                        "Gut1", "Pect"), Metabolic_State == "N") %>%
+  ggplot(., aes(y=counts, x=Tissue)) +
+  geom_boxplot(aes(x=factor(Tissue, level = level_order))) + 
+  #geom_violin() +
+  my_theme + facet_wrap(.~gene, scales = "free") +
+  ggtitle("clock genes expression across tissues") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  #scale_x_discrete(labels = c("Normothermy", "Transition", "Deep torpor")) +
+  ylab("Gene counts") + xlab("Tissue")
 
 
 datlong %>%

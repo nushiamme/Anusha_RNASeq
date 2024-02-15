@@ -151,6 +151,7 @@ plot(sft$fitIndices[,1], sft$fitIndices[,5],
      xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
      main = paste("Mean connectivity"))
 text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+
 # choose the lowest power for which the scale-free topology fit index reaches 0.9. That would be 18.
 
 ## co-expression similarity and adjacency

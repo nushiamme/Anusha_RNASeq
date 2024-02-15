@@ -1212,6 +1212,23 @@ datlong %>%
   ylab("Gene counts") + xlab("Metabolic state")
 
 
+## Boxplot for Pauli
+## CLOCK gene all normo
+datlong %>%
+  filter(gene == "CLOCK", Metabolic_State == "D") %>%
+  ggplot(., aes(y=counts, x=Tissue)) +
+  geom_boxplot() +
+  #geom_smooth(aes(col=Tissue), method="lm") + 
+  #geom_violin() +
+  my_theme + #facet_grid(.~Tissue, scales = "free") +
+  ggtitle("CLOCK gene expression across tissues") +
+  scale_x_discrete(labels = c("Cerebellum", "Diencephalon", "Dorsal Telencephalon", "Rostral Telencephalon")) +
+  #scale_color_manual(values = my_col_rainbows) +
+  #scale_color_viridis_d() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size=15)) +
+  ylab("Gene counts") + xlab("Tissue")
+
+
 
 ## Line plots
 datlong %>%
