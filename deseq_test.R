@@ -11,8 +11,10 @@
 # if (!requireNamespace('BiocManager', quietly = TRUE))
 #   install.packages('BiocManager')
 # BiocManager::install('DESeq2')
-# BiocManager::install('EnhancedVolcano') 
+# BiocManager::install('EnhancedVolcano')
 # BiocManager::install('apeglm') 
+# BiocManager::install('clusterProfiler')
+# BiocManager::install('ComplexHeatmap')
 # Enhanced Volcano plot help: 
 # https://bioconductor.org/packages/devel/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html
 
@@ -70,6 +72,7 @@ mycols <- c("orange", "navy", "springgreen4", "mediumorchid", "#760431", "plum1"
 meta2 <- meta %>%
   rename(Sample = X)
 
+## Star mapping ####
 # starlong_meta <- star %>%
 #   gather(key="Mapped", value="count", -Sample) %>%
 #   left_join(., meta2, by="Sample")
@@ -93,9 +96,10 @@ meta2 <- meta %>%
 #   geom_bar(stat="identity", position="fill") +
 #   scale_fill_viridis(discrete = T)
 
+## Metadata ####
 rownames(meta) <- unique(meta$X)
 rownames(data) <- unique(data$X)
-data <- subset(data, select = -c(X))
+data <- subset(data, select = -c(X)) ## DON'T keep re-running unless you read data in again
 meta <- subset(meta, select = -c(X))
 
 meta <- meta[match(colnames(data), rownames(meta)),]
@@ -107,13 +111,15 @@ all(colnames(data) %in% rownames(meta))
 all(colnames(data) == rownames(meta))
 
 ## Create DESeq2Dataset object
-dds <- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = meta, design = Tissue ~ Metabolic_State)
+dds <- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = meta, design = ~ Tissue + Metabolic_State)
 
 ## Pre-filtering
 ## Taking out rows that have counts less than 10 reads total - recommended, not required, step
 keep <- rowSums(counts(dds)) >=10
 dds <- dds[keep,]
 
+#Order levels to be N, T, D
+dds$Metabolic_State <- factor(dds$Metabolic_State, levels = c("N", "T", "D"))
 ## Set the factor level to compare against (in our case, normothermy)
 dds$Metabolic_State <- relevel(dds$Metabolic_State, ref="N")
 
@@ -121,8 +127,8 @@ dds$Metabolic_State <- relevel(dds$Metabolic_State, ref="N")
 dds <- DESeq(dds)
 
 
-## PCAs
-vst_dds <- vst(dds,blind=TRUE, fitType='local')
+## PCAs ####
+#vst_dds <- vst(dds,blind=TRUE, fitType='local') # Not sure what this line is
 
 
 ## Don't use this
@@ -131,8 +137,8 @@ vst_dds <- vst(dds,blind=TRUE, fitType='local')
 # 
 # tissue_pca + geom_point(size=4) + my_theme + scale_color_manual(values = mycols, name = "Tissue")
 
-## Use this
-# plotPCA_jh = function(pp1=1, pp2=2, 
+### PCA ####
+ # plotPCA_jh = function(pp1=1, pp2=2, 
 #                       object, intgroup="condition", 
 #                       ntop=1000, returnData=FALSE) {
 #   
@@ -203,7 +209,7 @@ vst_dds <- vst(dds,blind=TRUE, fitType='local')
 # plot_grid(pc12_heart, pc13_heart, align = "h", rel_widths = c(1.5, 2))
 
 
-## Get normalized data, save it RE-RUN only if necessary
+## Get normalized data, save it RE-RUN only if necessary ####
 normalized_counts <- counts(dds, normalized=TRUE)
 # norm_counts_df <- as.data.frame(normalized_counts)
 
@@ -212,7 +218,7 @@ normalized_counts <- counts(dds, normalized=TRUE)
 meta2$Metabolic_State <- as.factor(meta2$Metabolic_State)
 datlong <- norm_counts_df %>%
   #rename(gene = X) %>%
-  gather(key = 'Sample', value= 'counts', 3:ncol(norm_counts_df)) %>% 
+  gather(key = 'Sample', value= 'counts', 2:ncol(norm_counts_df)) %>% 
   left_join(., meta2, by="Sample") %>%
   mutate(Metabolic_State = 
            fct_relevel(Metabolic_State, 
@@ -225,14 +231,14 @@ foldlong <- foldchange %>%
   gather(key = 'Measure', value= 'value', -c(gene,Tissue))
 
 
-#### Don't re-run unless you need to make the norm counts df again
+#### Don't re-run unless you need to make the norm counts df again ####
 ## write.csv(norm_counts_df, file = here("..//DESeq_Data_Mar2022_all tissues//all tissues//final//RNASeq_NormCounts.csv"))
 
 ## For GSEA, make a file that has all the groups in a row in the order they are in in the columns of the the normalized 
 ## counts dataset. Then in Excel, add a top row that has e.g. <119 2 1> where 
 ## 119 is the number of samples; 2 is the number of groups and 1 is a constant for all files.
 ## Add a second row that has <# Trt1 Trt2 Cntrl> with spaces in between where each substring is the name of the treatment group 
-## Encompassing all the cell values below
+## Encompassing all the cell values below ####
 meta2$Tissue_State <- paste0(meta2$Tissue, "_", meta2$Metabolic_State)
 
 phenotype_labs <- data.frame()
@@ -263,14 +269,16 @@ colSums(counts(dds, normalized=T))
 plotDispEsts(dds)
 
 ## Save results
-res_unshrunken <- results(dds)
-res <- results(dds)
+res_unshrunken <- results(dds) #Keep this without shrinking
+res <- results(dds) # make changes to this later
 
 ## Take a quick look at the results
 res_unshrunken
+res
 
 ## Summary of results
 summary(res)
+summary(res_unshrunken)
 
 ## Compare different pairs
 res_ND <- results(dds, contrast=c("Metabolic_State", "D", "N"))
@@ -279,6 +287,7 @@ res_NT <- results(dds, contrast=c("Metabolic_State", "T", "N"))
 summary(res_NT)
 res_TD <- results(dds, contrast=c("Metabolic_State", "D", "T"))
 summary(res_TD)
+
 
 
 ### Subsetting results per tissue type
@@ -710,13 +719,13 @@ norm_sig_ND_downreg_Pect <- normalized_counts[,c(1, 2:120)] %>%
 
 # my_sample_col <- data.frame(sample = rep(c("tumour", "normal"), c(4,2)))
 # row.names(my_sample_col) <- colnames(data_subset)
-
-annotation_col <- data.frame(
-  Tissue = factor(meta2$Tissue), 
-  Metab = factor(meta$Metabolic_State))
-row.names(annotation_col) <- colnames(norm_sig_ND_upreg)
-
-pheatmap(norm_sig_ND_upreg, annotation_row = my_gene_col, annotation_col = annotation_col)
+# 
+# annotation_col <- data.frame(
+#   Tissue = factor(meta2$Tissue), 
+#   Metab = factor(meta$Metabolic_State))
+# row.names(annotation_col) <- colnames(norm_sig_ND_upreg)
+# 
+# pheatmap(norm_sig_ND_upreg, annotation_row = my_gene_col, annotation_col = annotation_col)
 
 
 ### Annotate our heatmap (optional)
@@ -821,7 +830,7 @@ annotation_liver <- meta2 %>%
 ## Ordering cols by metabolic state
 ## USE THIS
 # 1) reorder the matrix based in the annotation
-liver_upND_ordered <- top_upreg_Liver_ND_norm[, rownames(annotation_liver)]
+liver_upND_ordered <- norm_sig_ND_upreg_Liver[, rownames(annotation_liver)]
 
 # 2) plot heatmap with no row clusters
 pheatmap::pheatmap(liver_upND_ordered,
@@ -835,7 +844,7 @@ pheatmap::pheatmap(liver_upND_ordered,
                    fontsize_row = 15,
                    fontsize_col = 15,
                    height = 20,
-                   #cluster_cols = F,
+                   cluster_cols = F,
                    legend = T,
                    fontsize = 20)
 
@@ -936,7 +945,7 @@ pheatmap::pheatmap(lungs_upND_ordered,
                    fontsize_row = 15,
                    fontsize_col = 15,
                    height = 20,
-                   cluster_cols = F,
+                   #cluster_cols = F,
                    legend = T,
                    fontsize = 20)
 
