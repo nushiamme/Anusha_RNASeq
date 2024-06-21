@@ -34,6 +34,8 @@ library(dendextend) # For making gene trees for heatmaps
 library(ComplexHeatmap)
 library(cowplot) # for plot_grid function
 library(enrichR)
+library(ashr) #for shrinking LFC with ashr
+library(ggfortify)
 
 ## If you opened the .Rproj file from the OneDrive folder, reading in these files will work- 
 ## the relative paths should be the same
@@ -42,8 +44,9 @@ meta <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", 
 star_alignment <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "star_alignment_plot.csv"))
 star <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "star_gene_counts.csv"))
 foldchange <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "TopFoldChanges.csv"))
+
 ## Made this one in this script
-norm_counts_df <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "RNASeq_NormCounts.csv"))
+#norm_counts_df <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "RNASeq_NormCounts.csv"))
 
 ## Just for prepping for GO analysis on https://usadellab.github.io/GeneExpressionPlots/#/data
 #dat_exp <- read_table(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "RNASeq_rawcounts_data_ForGONet.txt"))
@@ -109,6 +112,143 @@ all(colnames(data) %in% rownames(meta))
 
 ## Check that the cols are in the same order in the data as the rownames in the metadata
 all(colnames(data) == rownames(meta))
+
+## Trying to do keep for the whole dataset, to filter out genes that have rowsums < 10 across all tissues
+keep <- rowSums(data) >=10
+data_kept <- data[keep,]
+meta_heart <- meta[meta$Tissue=="Heart",]
+heartsam <- rownames(meta_heart)
+dat_heart <- data_kept[,rownames(meta_heart)]
+
+
+# June 2024, making subsets of meta and data per tissue. And then making one deSeq object per tissue
+meta_heart <- meta[meta$Tissue=="Heart",]
+heartsam <- rownames(meta_heart)
+dat_heart <- data[,rownames(meta_heart)]
+
+meta_liver <- meta[meta$Tissue=="Liver",]
+liversam <- rownames(meta_liver)
+dat_liver <- data[,rownames(meta_liver)]
+
+meta_pect <- meta[meta$Tissue=="Pect",]
+pectsam <- rownames(meta_pect)
+dat_pect <- data[,rownames(meta_pect)]
+
+meta_gut1 <- meta[meta$Tissue=="Gut1",]
+gut1sam <- rownames(meta_gut1)
+dat_gut1 <- data[,rownames(meta_gut1)]
+
+meta_gut2 <- meta[meta$Tissue=="Gut2",]
+gut2sam <- rownames(meta_gut2)
+dat_gut2 <- data[,rownames(meta_gut2)]
+
+meta_gut3 <- meta[meta$Tissue=="Gut3",]
+gut3sam <- rownames(meta_gut3)
+dat_gut3 <- data[,rownames(meta_gut3)]
+
+meta_lungs <- meta[meta$Tissue=="Lungs",]
+lungssam <- rownames(meta_lungs)
+dat_lungs <- data[,rownames(meta_lungs)]
+
+## Create DESeq2Dataset object
+dds_heart <- DESeq2::DESeqDataSetFromMatrix(countData = dat_heart, 
+                                            colData = meta_heart, design = ~ Metabolic_State)
+
+## Aravind June 21, 2024
+# Try jackstraw PC. Take PC1 and see what genes are contributing to variation +vely vs -vely along that axis, 
+# and then use those genes for downstream analyses - for PC3, PC4, PC5. Where do we find the genes of our interest
+# If PC 1 doesn't make much sense, then along some PCA if we find things like metabolic genes, validate 
+# with qPCR (lol)
+# Package to check for large scale variation and check for outliers, and if there's anything beyond the quadrant
+# Where most of the samples lie; remove outliers and rerun
+
+## TRY THIS FIRST
+## Try accounting for design factors, like extraction batch etc. in the design of DESeqDataSetFromMatrix
+
+
+#keep_heart <- rowSums(counts(dds_heart)) >=10
+#dds_heart <- dds_heart[keep_heart,]
+#Order levels to be N, T, D
+dds_heart$Metabolic_State <- factor(dds_heart$Metabolic_State, levels = c("N", "T", "D"))
+## Set the factor level to compare against (in our case, normothermy)
+dds_heart$Metabolic_State <- relevel(dds_heart$Metabolic_State, ref="N")
+## Run DESeq
+dds_heart <- DESeq(dds_heart)
+## Get normalized data, save it RE-RUN only if necessary ####
+normalized_counts_heart <- counts(dds_heart, normalized=TRUE)
+## Take a look at the data a bit
+## Total number of raw counts per sample
+colSums(counts(dds_heart))
+## Total number of normalized counts per sample
+colSums(counts(dds_heart, normalized=T))
+## Plot dispersion estimates
+plotDispEsts(dds_heart)
+## Save results
+res_unshrunken_heart <- results(dds_heart) #Keep this without shrinking
+res_heart <- results(dds_heart) # make changes to this later
+res_heart <- lfcShrink(dds_heart, coef = 3, res = res_heart)
+
+## Trying out changing the contrast
+res_heart2 <- lfcShrink(dds_heart, coef = "Metabolic_State_D_vs_N", res = res_heart, type = "ashr")
+## Take a quick look at the results
+res_unshrunken_heart
+res_heart
+res_heart2
+## Summary of results
+summary(res_heart)
+summary(res_heart2)
+summary(res_unshrunken_heart)
+
+
+
+dds_liver <- DESeq2::DESeqDataSetFromMatrix(countData = dat_liver, 
+                                            colData = meta_liver, design = ~ Metabolic_State)
+keep_liver <- rowSums(counts(dds_liver)) >=10
+dds_liver <- dds_liver[keep_liver,]
+#Order levels to be N, T, D
+dds_liver$Metabolic_State <- factor(dds_liver$Metabolic_State, levels = c("N", "T", "D"))
+## Set the factor level to compare against (in our case, normothermy)
+dds_liver$Metabolic_State <- relevel(dds_liver$Metabolic_State, ref="N")
+## Run DESeq
+dds_liver <- DESeq(dds_liver)
+## Get normalized data, save it RE-RUN only if necessary ####
+normalized_counts_liver <- counts(dds_liver, normalized=TRUE)
+## Take a look at the data a bit
+## Total number of raw counts per sample
+colSums(counts(dds_liver))
+## Total number of normalized counts per sample
+colSums(counts(dds_liver, normalized=T))
+## Plot dispersion estimates
+plotDispEsts(dds_liver)
+## Save results
+res_unshrunken_liver <- results(dds_liver) #Keep this without shrinking
+res_liver <- results(dds_liver) # make changes to this later
+res_liver <- lfcShrink(dds_liver, coef = 3, res = res_liver)
+## Take a quick look at the results
+res_unshrunken_liver
+res_liver
+## Summary of results
+summary(res_liver)
+summary(res_unshrunken_liver)
+
+
+
+
+dds_pect <- DESeq2::DESeqDataSetFromMatrix(countData = dat_pect, 
+                                            colData = meta_pect, design = ~ Metabolic_State)
+
+dds_lungs <- DESeq2::DESeqDataSetFromMatrix(countData = dat_lungs, 
+                                           colData = meta_lungs, design = ~ Metabolic_State)
+
+dds_gut1 <- DESeq2::DESeqDataSetFromMatrix(countData = dat_gut1, 
+                                           colData = meta_gut1, design = ~ Metabolic_State)
+
+dds_gut2 <- DESeq2::DESeqDataSetFromMatrix(countData = dat_gut2, 
+                                           colData = meta_gut2, design = ~ Metabolic_State)
+
+dds_gut3 <- DESeq2::DESeqDataSetFromMatrix(countData = dat_gut3, 
+                                           colData = meta_gut3, design = ~ Metabolic_State)
+
 
 ## Create DESeq2Dataset object
 dds <- DESeq2::DESeqDataSetFromMatrix(countData = data, colData = meta, design = ~ Tissue + Metabolic_State)
@@ -213,6 +353,9 @@ dds <- DESeq(dds)
 normalized_counts <- counts(dds, normalized=TRUE)
 # norm_counts_df <- as.data.frame(normalized_counts)
 
+plotPCA(vst(dds_heart,blind=TRUE, fitType='local'), intgroup="Metabolic_State", aes(label=colnames(dds_heart)))
+
+
 #### Needed for later analyses
 ## Make data long-form and merge with metadata file
 meta2$Metabolic_State <- as.factor(meta2$Metabolic_State)
@@ -299,8 +442,62 @@ res_Pect_ND <- results(dds[dds$Tissue=="Pect",], contrast=c("Metabolic_State", "
 
 res_Lungs_ND <- results(dds[dds$Tissue=="Lungs",], contrast=c("Metabolic_State", "D", "N"))
 
+## New code by Anagha 3 Jun 2024 because the above res wasn't subsetting properly, potentially
+dds_heart_new <- dds[,dds$Tissue=="Heart"]
+dds_heart_new$Tissue <- droplevels(dds_heart_new$Tissue)
+res_heart_new_ND <- results(dds_heart_new, contrast = c("Metabolic_State", "D", "N"))
+res_tb_heart_new_ND <- res_heart_new_ND %>%
+  data.frame() %>%
+  rownames_to_column(var="gene") %>% 
+  as_tibble()
+
+newRes_upreg_Heart_ND <-  res_heart_new_ND %>%
+  data.frame() %>%
+  rownames_to_column(var="gene") %>% 
+  as_tibble() %>%
+  filter(log2FoldChange>0.58 & padj < 0.05 & baseMean > 10) %>%
+  arrange(padj) %>%
+  pull(gene)
+
+newRes_downreg_Heart_ND <-  res_heart_new_ND %>%
+  data.frame() %>%
+  rownames_to_column(var="gene") %>% 
+  as_tibble() %>%
+  filter(log2FoldChange < -0.58 & padj < 0.05 & baseMean > 10) %>%
+  arrange(padj) %>%
+  pull(gene)
+
+## New thing for liver
+dds_liver_new <- dds[,dds$Tissue=="Liver"]
+dds_liver_new$Tissue <- droplevels(dds_liver_new$Tissue)
+res_liver_new_ND <- results(dds_liver_new, contrast = c("Metabolic_State", "D", "N"))
+res_tb_liver_new_ND <- res_liver_new_ND %>%
+  data.frame() %>%
+  rownames_to_column(var="gene") %>% 
+  as_tibble()
+
+newRes_upreg_liver_ND <-  res_liver_new_ND %>%
+  data.frame() %>%
+  rownames_to_column(var="gene") %>% 
+  as_tibble() %>%
+  filter(log2FoldChange>0.58 & padj < 0.05 & baseMean > 10) %>%
+  arrange(padj) %>%
+  pull(gene)
+
+newRes_downreg_liver_ND <-  res_liver_new_ND %>%
+  data.frame() %>%
+  rownames_to_column(var="gene") %>% 
+  as_tibble() %>%
+  filter(log2FoldChange < -0.58 & padj < 0.05 & baseMean > 10) %>%
+  arrange(padj) %>%
+  pull(gene)
+
+
+
 
 ## Trying to make a res file per tissue type
+results(dds, contrast=c("Metabolic_State", "D", "N"),)
+
 results(dds, contrast=c("Metabolic_State", "D", "N"),)
 
 # ### Adjusted p values of 0.01
