@@ -44,6 +44,7 @@ meta <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", 
 star_alignment <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "star_alignment_plot.csv"))
 star <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "star_gene_counts.csv"))
 foldchange <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "TopFoldChanges.csv"))
+weird_pca_sam <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "WeirdPCA_Samples.csv"))
 
 ## Made this one in this script
 #norm_counts_df <- read.csv(here("DESeq_Data_Mar2022_all tissues", "all tissues", "final", "RNASeq_NormCounts.csv"))
@@ -149,7 +150,7 @@ dat_gut3 <- data[,rownames(meta_gut3)]
 meta_lungs <- meta[meta$Tissue=="Lungs",]
 lungssam <- rownames(meta_lungs)
 dat_lungs <- data[,rownames(meta_lungs)]
-
+ 
 ## Create DESeq2Dataset object
 dds_heart <- DESeq2::DESeqDataSetFromMatrix(countData = dat_heart, 
                                             colData = meta_heart, design = ~ Metabolic_State)
@@ -189,7 +190,7 @@ res_heart <- results(dds_heart) # make changes to this later
 res_heart <- lfcShrink(dds_heart, coef = 3, res = res_heart)
 
 ## Trying out changing the contrast
-res_heart2 <- lfcShrink(dds_heart, coef = "Metabolic_State_D_vs_N", res = res_heart, type = "ashr")
+res_heart2 <- lfcShrink(dds_heart, coef = "Metabolic_State_D_vs_N")
 ## Take a quick look at the results
 res_unshrunken_heart
 res_heart
@@ -199,7 +200,10 @@ summary(res_heart)
 summary(res_heart2)
 summary(res_unshrunken_heart)
 
-
+## MA plot
+plotMA(dds_heart)
+plotMA(res_unshrunken_heart)
+plotMA(res_heart, ylim = c(-2,2))
 
 dds_liver <- DESeq2::DESeqDataSetFromMatrix(countData = dat_liver, 
                                             colData = meta_liver, design = ~ Metabolic_State)
@@ -278,71 +282,69 @@ dds <- DESeq(dds)
 # tissue_pca + geom_point(size=4) + my_theme + scale_color_manual(values = mycols, name = "Tissue")
 
 ### PCA ####
- # plotPCA_jh = function(pp1=1, pp2=2, 
-#                       object, intgroup="condition", 
-#                       ntop=1000, returnData=FALSE) {
-#   
-#   
-#   # calculate the variance for each gene
-#   rv <- rowVars(assay(object))
-#   
-#   # select the ntop genes by variance
-#   select <- order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
-#   
-#   # perform a PCA on the data in assay(x) for the selected genes
-#   pca <- prcomp(t(assay(object)[select,]))
-#   
-#   # the contribution to the total variance for each component
-#   percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
-#   
-#   if (!all(intgroup %in% names(colData(object)))) {
-#     stop("the argument 'intgroup' should specify columns of colData(dds)")
-#   }
-#   
-#   intgroup.df <- as.data.frame(colData(object)[, intgroup, drop=FALSE])
-#   
-#   # add the intgroup factors together to create a new grouping factor
-#   group <- if (length(intgroup) > 1) {
-#     factor(apply(intgroup.df, 1, paste, collapse=":"))
-#   } else {
-#     colData(object)[[intgroup]]
-#   }
-#   
-#   # assembly the data for the plot
-#   d <- data.frame(PC1=pca$x[,pp1], PC2=pca$x[,pp2], group=group, intgroup.df, 
-#                   name=colnames(object))
-#   
-#   if (returnData) {
-#     attr(d, "percentVar") <- percentVar[pp1:pp2]
-#     return(d)
-#   }
-#   
-#   ggplot(data=d, aes_string(x="PC1", y="PC2", color="group", label = "name")) + 
-#     geom_point(size=3) + 
-#     xlab(paste0("PC", pp1, ": ",round(percentVar[pp1] * 100),"% variance")) +
-#     ylab(paste0("PC", pp2, ": ",round(percentVar[pp2] * 100),"% variance")) +
-#     #scale_color_brewer(type = "qual", palette = "Dark2", direction = 1)+
-#     #colorspace::scale_color_discrete_qualitative(palette = "Dark 3", rev = TRUE)+
-#     cowplot::theme_cowplot()+
-#     coord_fixed()
-# }
+ plotPCA_jh = function(pp1=1, pp2=2,
+                      object, intgroup="condition",
+                      ntop=1000, returnData=FALSE) {
+  #calculate the variance for each gene
+  rv <- rowVars(assay(object))
 
-# pc12 <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vst_dds, intgroup = "Tissue") + geom_point(size=4) + 
-#   guides(col="none") + my_theme2 + scale_color_manual(values = mycols)
-# pc13 <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vst_dds, intgroup = "Tissue") + 
-#   geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Tissue")
-# 
-# grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
-# library(cowplot)
-# plot_grid(pc12, pc13, align = "h", rel_widths = c(0.45, 0.55))
+  #select the ntop genes by variance
+  select <- order(rv, decreasing=TRUE)[seq_len(min(ntop, length(rv)))]
+
+  #perform a PCA on the data in assay(x) for the selected genes
+  pca <- prcomp(t(assay(object)[select,]))
+
+  #the contribution to the total variance for each component
+  percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
+
+  if (!all(intgroup %in% names(colData(object)))) {
+    stop("the argument 'intgroup' should specify columns of colData(dds)")
+  }
+
+  intgroup.df <- as.data.frame(colData(object)[, intgroup, drop=FALSE])
+
+  #add the intgroup factors together to create a new grouping factor
+  group <- if (length(intgroup) > 1) {
+    factor(apply(intgroup.df, 1, paste, collapse=":"))
+  } else {
+    colData(object)[[intgroup]]
+  }
+
+  #assembly the data for the plot
+  d <- data.frame(PC1=pca$x[,pp1], PC2=pca$x[,pp2], group=group, intgroup.df,
+                  name=colnames(object))
+
+  if (returnData) {
+    attr(d, "percentVar") <- percentVar[pp1:pp2]
+    return(d)
+  }
+
+  ggplot(data=d, aes_string(x="PC1", y="PC2", color="group", label = "name")) +
+    geom_point(size=3) +
+    xlab(paste0("PC", pp1, ": ",round(percentVar[pp1] * 100),"% variance")) +
+    ylab(paste0("PC", pp2, ": ",round(percentVar[pp2] * 100),"% variance")) +
+    scale_color_brewer(type = "qual", palette = "Dark2", direction = 1)+
+    colorspace::scale_color_discrete_qualitative(palette = "Dark 3", rev = TRUE)+
+    cowplot::theme_cowplot()+
+    coord_fixed()
+}
+
+pc12 <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vst_dds, intgroup = "Tissue") + geom_point(size=4) +
+  guides(col="none") + my_theme2 + scale_color_manual(values = mycols)
+pc13 <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vst_dds, intgroup = "Tissue") +
+  geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Tissue")
+
+grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
+library(cowplot)
+plot_grid(pc12, pc13, align = "h", rel_widths = c(0.45, 0.55))
 
 ## Sample tissue one- just heart
 # heart_dds <- dds[,dds$Tissue=="Heart"]
 # vstdds_heart <- vst(heart_dds,blind=TRUE, fitType='local')
-# pc12_heart <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vstdds_heart, intgroup = "Metabolic_State") + geom_point(size=4) + 
+# pc12_heart <- plotPCA_jh(pp1 = 1, pp2 = 2, object=vstdds_heart, intgroup = "Metabolic_State") + geom_point(size=4) +
 #   guides(col="none") + my_theme2 + scale_color_manual(values = mycols)
-# pc13_heart <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vstdds_heart, intgroup = "Metabolic_State") + 
-#   geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Metabolic_State", 
+# pc13_heart <- plotPCA_jh(pp1 = 1, pp2 = 3, object=vstdds_heart, intgroup = "Metabolic_State") +
+#   geom_point(size=4) + my_theme2 + scale_color_manual(values = mycols, name = "Metabolic_State",
                                                      # labels=c("Normothermy", "Transition", "Deep torpor"))
 
 #grid.arrange(pc12, pc13, ncol=2, nrow=1, widths=c(1.5,2), heights = c(1,1))
@@ -353,7 +355,72 @@ dds <- DESeq(dds)
 normalized_counts <- counts(dds, normalized=TRUE)
 # norm_counts_df <- as.data.frame(normalized_counts)
 
-plotPCA(vst(dds_heart,blind=TRUE, fitType='local'), intgroup="Metabolic_State", aes(label=colnames(dds_heart)))
+plotPCA(vst(dds_heart,blind=TRUE, fitType='local'), intgroup="Metabolic_State") +  geom_label(aes(label = name))
+## Weird samples from PCA, plots
+summary(as.factor(weird_pca_sam$Tissue))
+summary(as.factor(weird_pca_sam$BirdID))
+ggplot(weird_pca_sam, aes(BirdID, Extraction_Batch)) + geom_point(position = position_stack(), aes(color=Tissue), size=3) +
+  scale_color_manual(values = mycols) + facet_wrap(.~Extraction_Batch, scales = "free_x")
+
+
+## Trying vsd with heatmaps of pairwise distance between samples 
+vsd_heart <- vst(dds_heart, blind=FALSE)
+rld_heart <- rlog(dds_heart, blind=FALSE)
+head(assay(vsd_heart), 3)
+sampleDists_heart <- dist(t(assay(vsd_heart)))
+
+
+sampleDistMatrix_heart <- as.matrix(sampleDists_heart)
+#rownames(sampleDistMatrix) <- paste(vsd$condition, vsd$type, sep="-")
+#colnames(sampleDistMatrix) <- NULL
+anno_colors <- list(Metabolic_State = c(N = "#f9c74f", D = "#43aa8b", T = "#277da1"))
+colors <- rev(brewer.pal(9, "BrBG"))
+meta_heart2 <- meta_heart
+meta_heart2$Metabolic_State <- factor(meta_heart2$Metabolic_State, levels = c("N", "T", "D")) 
+meta_heart2 <- meta_heart2 %>%
+  arrange(Metabolic_State)
+annotation <- data.frame(Metabolic_State = factor (meta_heart2$Metabolic_State, levels = c("N", "T", "D")))
+pheatmap(sampleDistMatrix_heart,
+         clustering_distance_rows=sampleDists_heart,
+         clustering_distance_cols=sampleDists_heart,
+         cluster_rows = F,
+         cluster_cols=F,
+         col=colors,
+         annotation_row = annotation,
+         annotation_col = annotation,
+         annotation_colors = anno_colors,
+         show_colnames = T,
+         show_rownames = T)
+
+## pheatmap clustering for liver
+## Trying vsd with heatmaps of pairwise distance between samples 
+vsd_liver <- vst(dds_liver, blind=FALSE)
+rld_liver <- rlog(dds_liver, blind=FALSE)
+head(assay(vsd_liver), 3)
+sampleDists_liver <- dist(t(assay(vsd_liver)))
+
+
+sampleDistMatrix_liver <- as.matrix(sampleDists_liver)
+#rownames(sampleDistMatrix) <- paste(vsd$condition, vsd$type, sep="-")
+#colnames(sampleDistMatrix) <- NULL
+anno_colors <- list(Metabolic_State = c(N = "#f9c74f", T = "#277da1", D = "#43aa8b"))
+colors <- rev(brewer.pal(9, "BrBG"))
+meta_liver2 <- meta_liver
+meta_liver2$Metabolic_State <- factor(meta_liver2$Metabolic_State, levels = c("N", "T", "D")) 
+meta_liver2 <- meta_liver2 %>%
+  arrange(Metabolic_State)
+annotation <- data.frame(Metabolic_State = factor (meta_liver2$Metabolic_State, levels = c("N", "T", "D")))
+pheatmap(sampleDistMatrix_liver,
+         clustering_distance_rows=sampleDists_liver,
+         clustering_distance_cols=sampleDists_liver,
+         cluster_rows = F,
+         cluster_cols=F,
+         col=colors,
+         annotation_row = annotation,
+         annotation_col = annotation,
+         annotation_colors = anno_colors,
+         show_colnames = T,
+         show_rownames = T)
 
 
 #### Needed for later analyses
